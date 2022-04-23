@@ -22,24 +22,19 @@ class MainViewModel(
     val selectedArticle : LiveData<Article> = _selectedArticle
 
     fun articleClickAfterFetch(clickedItemId: Long) = viewModelScope.launch {
-        try {
-            with(api.getArticles()) {
-                if (isSuccessful) {
-                    body()?.let {
-                        _articles.postValue(it)
-                    }
-                    val getArticleResponse = api.getArticle(clickedItemId)
-                    if(getArticleResponse.isSuccessful) {
-                        getArticleResponse.body()?.let {selectedArticle ->
-                            _selectedArticle.postValue(selectedArticle)
-                        }
-                    }
-                } else {
-                    //TODO: 뭔가 에러 바디를 처리하고 싶은 것
-                }
+        runCatching { api.getArticles() }
+            .onSuccess {
+                _articles.postValue(it)
+                getArticle(clickedItemId)
             }
-        } catch (t: Throwable) {
-            t.printStackTrace()
-        }
+            .onFailure { it.printStackTrace() }
+    }
+
+    private fun getArticle(id: Long) = viewModelScope.launch {
+        runCatching { api.getArticle(id) }
+            .onSuccess {
+                _selectedArticle.postValue(it)
+            }
+            .onFailure { it.printStackTrace() }
     }
 }
